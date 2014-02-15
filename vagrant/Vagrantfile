@@ -1,0 +1,89 @@
+# -*- mode: ruby -*-
+# vi: set ft=ruby :
+
+### Prerequisite section
+# We require a YAML library to attempt to load our default config
+require 'yaml'
+
+# Librarian-Chef is in use, let us remind 'the people'
+Vagrant.require_plugin 'vagrant-librarian-chef'
+Vagrant.require_plugin 'vagrant-omnibus'
+
+# Attempt to load the config file, fail gracefully otherwise
+conf_file = "%s/vagrant_config.yml" % ENV['PWD']
+
+begin
+  vconf = YAML::load_file(conf_file)
+rescue
+  puts "FATAL: Configuration file (%s) could not be loaded" % conf_file
+  exit 1
+end
+
+# New features are good, ensure our preferred versions are honoured
+Vagrant.require_version defined?(vconf['vagrant']['version']) ?  vconf['vagrant']['version'] : ">= 1.1"
+
+### Main config section
+Vagrant.configure(defined?(vconf['vagrant']['api_version']) ?  vconf['vagrant']['api_version'] : "2") do |config|
+
+  # Define the location of our private key
+  #config.ssh.private_key_path = defined?(vconf['private_key']) ?  vconf['private_key'] : ENV['HOME'] + '/.ssh/id_rsa'
+
+  # Ubuntu 12.04 LTS (Precise Pangolin) is generally a decent choice
+  config.vm.box = defined?(vconf['base']['box']) ? vconf['base']['box'] : 'precise64'
+  config.vm.box_url = defined?(vconf['base']['box_url']) ? vconf['base']['box_url'] : 'http://files.vagrantup.com/precise64.box'
+  config.vm.hostname = defined?(vconf['base']['hostname']) ? vconf['base']['hostname'] : 'demo-01'
+
+  # Specify the location of the Cheffile
+  config.librarian_chef.cheffile_dir = defined?(vconf['chef']['cheffile_dir']) ? vconf['chef']['cheffile_dir'] : '.chef'
+
+  # Chef Omnibus
+  config.omnibus.chef_version = :latest
+
+  # Ensure we are provisioning with chef-solo and specify the location of our cookbooks_path
+  config.vm.provision :chef_solo do |chef|
+    chef.cookbooks_path = defined?(vconf['chef']['cookbooks_path']) ? vconf['chef']['cookbooks_path'] : '.chef/cookbooks_path'
+    if defined?(vconf['chef']['roles_path']) then
+        chef.roles_path = defined?(vconf['chef']['roles_path']) ? vconf['chef']['roles_path'] : '.chef/roles'
+    end
+    if defined?(vconf['chef']['role']) then
+        chef.add_role(vconf['chef']['role'])
+    end
+  end
+
+  # Explictly defined port collision range
+  #config.vm.usable_port_range = defined?(vconf['base']['port_range']) ? vconf['base']['port_range'] : 2800..2900
+
+  # Private network configuration
+  config.vm.network :private_network, ip: '10.0.10.100', :netmask => '255.255.255.0'
+  config.vm.network :private_network, ip: '192.168.0.100', :netmask => '255.255.0.0'
+
+  ### VirtualBox provider settings
+  config.vm.provider :virtualbox do |vbox|
+    # Set the memory size and CPU count
+    vbox.customize ['modifyvm', :id, '--memory', defined?(vconf['virtualbox']['memsize']) ? vconf['virtualbox']['memsize'] : 1024]
+    vbox.customize ['modifyvm', :id, '--cpus', defined?(vconf['virtualbox']['cpu_count']) ? vconf['virtualbox']['cpu_count'] : 1]
+    vbox.gui = true
+  end
+
+  ### VMware Fusion provider settings
+  config.vm.provider :vmware_fusion do |fusion|
+    # Set the memory size
+    fusion.vmx['memsize'] = defined?(vconf['fusion']['memsize']) ? vconf['fusion']['memsize'] : 1024
+  end
+
+  ### RAX provider settings
+  config.vm.provider :rackspace do |rs, override|
+  # Overrides should be avoided, we have no choice here :(
+  override.vm.box = 'dummy'
+
+  # Authentication creds, server details, etc.
+  rs.username = defined?(vconf['rax']['username']) ? vconf['rax']['username'] : 'testuser'
+  rs.api_key = defined?(vconf['rax']['api_key']) ? vconf['rax']['api_key'] : 'testkey'
+  rs.rackspace_region = defined?(vconf['rax']['region']) ? vconf['rax']['region'] : 'lon'
+  rs.server_name = config.vm.hostname
+  rs.flavor = defined?(vconf['rax']['flavor']) ? /#{vconf['rax']['flavor']}/ : /1 GB Performance/
+  rs.image = defined?(vconf['rax']['image']) ? /#{vconf['rax']['image']}/ : /Ubuntu 12.04 LTS/
+  rs.disk_config = defined?(vconf['rax']['disk_config']) ? vconf['rax']['disk_config'] : 'MANUAL'
+  rs.key_name = defined?(vconf['rax']['key_name']) ? vconf['rax']['key_name'] : 'rax'
+  end
+end

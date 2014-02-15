@@ -1,0 +1,39 @@
+### Vagrantfile configration options
+
+vagrant:
+  version: '>= 1.1'
+  api_version: '2'
+
+chef:
+  cheffile_dir: 'chef/chef-vagrant'
+  cookbooks_path: 'chef/chef-vagrant/cookbooks'
+  roles_path: 'chef/chef-vagrant/roles'
+  role: 'test1'
+
+base:
+  box: 'precise64'
+  box_url: 'http://files.vagrantup.com/precise64.box'
+  hostname: 'server-01'
+  port_range: '2800..2900'
+  private_network:
+    - ip: '10.0.10.100'
+      netmask: '255.255.255.0'
+    - ip: '192.168.0.100'
+      netmask: '255.255.0.0'
+
+virtualbox:
+  memsize: 1024
+  cpu_count: 1
+
+fusion:
+  memsize: 1024
+
+# RAX server name defined by base::hostname
+rax:
+  username: '__test_user__'
+  api_key: '__test_api_key__'
+  region: 'lon'
+  flavor: '1 GB Performance'
+  image: 'Ubuntu 12.04 LTS'
+  disk_config: 'MANUAL'
+  key_name: 'rax'
