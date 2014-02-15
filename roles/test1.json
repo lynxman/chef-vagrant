@@ -4,6 +4,11 @@
     "chef_type": "role",
     "json_class": "Chef::Role",
     "default_attributes": {
+        "mysql": {
+            "server_debian_password": "test",
+            "server_root_password": "test",
+            "server_repl_password": "test"
+        }
     },
     "override_attributes": {},
     "run_list": [
@@ -11,6 +16,6 @@
         "recipe[apt]",
         "recipe[apache2]",
         "recipe[php]",
-        "recipe[mysql]"
+        "recipe[mysql::server]"
     ]
 }

@@ -1,0 +1,10 @@
+site "http://community.opscode.com/api/v1"
+
+cookbook "build-essential"
+cookbook "xml"
+cookbook "users"
+cookbook "ntp"
+cookbook "apt"
+cookbook "apache2"
+cookbook "php"
+cookbook "mysql"
